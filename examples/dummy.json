@@ -1,0 +1,22 @@
+[
+  {
+      "AppName": "Test",
+      "Exe": "bla",
+      "StartDir": "bla",
+      "Icon": "bla",
+      "ShortcutPath": "bla",
+      "LaunchOptions": "bla",
+      "Hidden": false,
+      "Tags": ["1", "2", "3"]
+  },
+  {
+      "AppName": "Test2",
+      "Exe": "bla",
+      "StartDir": "bla",
+      "Icon": "bla",
+      "ShortcutPath": "bla",
+      "LaunchOptions": "bla",
+      "Hidden": false,
+      "Tags": ["1", "2", "3"]
+  }
+]

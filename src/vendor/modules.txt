@@ -1,0 +1,4 @@
+# github.com/stephen-fox/steamutil v1.3.0
+## explicit
+github.com/stephen-fox/steamutil/shortcuts
+github.com/stephen-fox/steamutil/vdf

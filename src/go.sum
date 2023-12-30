@@ -1,0 +1,3 @@
+github.com/stephen-fox/steamutil v1.3.0 h1:6ZVyW23Hrm5Ez5qdKuJ+zspk0TI/vjGwGoKN6Di6M80=
+github.com/stephen-fox/steamutil v1.3.0/go.mod h1:xECd6D2tjqLpD28jNEPkxvOIcYNvTyzxs7Fo39pvnJ4=
+golang.org/x/sys v0.0.0-20181218192612-074acd46bca6/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
