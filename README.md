@@ -60,8 +60,8 @@ type Shortcut struct {
 - Create a proper home-manager module
 
 # Known Bugs
-- Steam can't write this file anymore. That has some implications
-	- Adding shortcuts through steam won't work
- 	- Steam can't update the last play time
+- Steam will overwrite this files
+	- Software added through steam will be lost with the next update.
+   	- Home Manager will complain after the second usage, since it will backup the original file and when aready a backup exists refuse to work. I haven't found a way to disable this behaviour.
     
-A possible solution would be to add merging support. So the declarative json will be merged with a pre-existing shortcuts.vdf when home-manager applies it's config. Currently i'm fine with these bugs, so i propably won't fix them. But PRs are welcome if someone wants to do this. 
+A possible solution would be to add merging support and do this during runtime (and not build-time). So the declarative json will be merged with a pre-existing shortcuts.vdf when home-manager applies it's config. Currently i'm fine with these bugs, so i propably won't fix them. But PRs are welcome if someone wants to do this. 
