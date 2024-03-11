@@ -1,7 +1,7 @@
 [
   {
       "AppName": "Test",
-      "Exe": "bla",
+      "ExePath": "bla",
       "StartDir": "bla",
       "Icon": "bla",
       "ShortcutPath": "bla",
@@ -11,7 +11,7 @@
   },
   {
       "AppName": "Test2",
-      "Exe": "bla",
+      "ExePath": "bla",
       "StartDir": "bla",
       "Icon": "bla",
       "ShortcutPath": "bla",
