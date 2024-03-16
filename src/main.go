@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"hash/fnv"
 	"os"
@@ -16,10 +17,27 @@ func hash(s string) int {
 }
 
 func main() {
+	var filepath string
+	flag.StringVar(&filepath, "file", "-", "the path to the json. when - is used it's read from stdin")
+
+	flag.Parse()
+
+	stream := os.Stdin
+
+	if filepath != "-" {
+		file, err := os.Open(filepath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Couldn't open file %s: %s\n", filepath, err.Error())
+			os.Exit(1)
+		}
+		defer file.Close()
+		stream = file
+	}
+
 	var s []shortcuts.Shortcut
-	err := json.NewDecoder(os.Stdin).Decode(&s)
+	err := json.NewDecoder(stream).Decode(&s)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
+		fmt.Fprintf(os.Stderr, "Couldn't parse json: %s\n", err.Error())
 		os.Exit(1)
 	}
 
