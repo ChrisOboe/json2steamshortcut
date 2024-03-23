@@ -55,7 +55,7 @@ func writeVdfString(buf *bytes.Buffer, key string, value string) error {
 }
 
 func writeVdfInt(buf *bytes.Buffer, key string, value uint32) error {
-	err := binary.Write(buf, binary.LittleEndian, []byte{0x00})
+	err := binary.Write(buf, binary.LittleEndian, []byte{0x02})
 	if err != nil {
 		return err
 	}
@@ -118,12 +118,24 @@ func (ss Shortcuts) ToVdf() ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-	err = binary.Write(buf, binary.LittleEndian, []byte{0x00, 0x00, 0x30, 0x00})
+	err = binary.Write(buf, binary.LittleEndian, []byte{0x00})
 	if err != nil {
 		return []byte{}, err
 	}
 
-	for _, s := range ss {
+	for i, s := range ss {
+		err = binary.Write(buf, binary.LittleEndian, []byte{0x00})
+		if err != nil {
+			return err
+		}
+		err = binary.Write(buf, binary.LittleEndian, []byte(strconv.Itoa(i)))
+		if err != nil {
+			return err
+		}
+		err = binary.Write(buf, binary.LittleEndian, []byte{0x00})
+		if err != nil {
+			return err
+		}
 		err = writeVdfInt(buf, "appid", s.AppId)
 		if err != nil {
 			return []byte{}, err
@@ -158,6 +170,11 @@ func (ss Shortcuts) ToVdf() ([]byte, error) {
 		}
 
 	}
+	err = binary.Write(buf, binary.LittleEndian, []byte{0x08, 0x08})
+	if err != nil {
+		return []byte{}, err
+	}
+
 	return buf.Bytes(), nil
 }
 
