@@ -126,15 +126,15 @@ func (ss Shortcuts) ToVdf() ([]byte, error) {
 	for i, s := range ss {
 		err = binary.Write(buf, binary.LittleEndian, []byte{0x00})
 		if err != nil {
-			return err
+			return []byte{}, err
 		}
 		err = binary.Write(buf, binary.LittleEndian, []byte(strconv.Itoa(i)))
 		if err != nil {
-			return err
+			return []byte{}, err
 		}
 		err = binary.Write(buf, binary.LittleEndian, []byte{0x00})
 		if err != nil {
-			return err
+			return []byte{}, err
 		}
 		err = writeVdfInt(buf, "appid", s.AppId)
 		if err != nil {
