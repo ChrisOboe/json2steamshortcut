@@ -1,19 +1,170 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"hash/fnv"
 	"os"
-
-	"github.com/stephen-fox/steamutil/shortcuts"
+	"strconv"
 )
 
-func hash(s string) int {
+type (
+	Shortcuts []Shortcut
+	Shortcut  struct {
+		AppId         uint32   `json:"AppId"`
+		Appname       string   `json:"AppName"`
+		Exe           string   `json:"Exe"`
+		StartDir      string   `json:"StartDir"`
+		LaunchOptions string   `json:"LaunchOptions"`
+		Icon          string   `json:"Icon"`
+		Tags          []string `json:"Tags"`
+		// ShortcutPath        string
+		// IsHidden            uint32
+		// AllowDesktopConfig  uint32
+		// AllowOverlay        uint32
+		// OpenVR              uint32
+		// Devkit              uint32
+		// DevkitGameId        string
+		// DevkitOverrideAppId uint32
+		// LastPlayTime        uint32
+		// FlatpakAppId        string
+	}
+)
+
+func writeVdfString(buf *bytes.Buffer, key string, value string) error {
+	err := binary.Write(buf, binary.LittleEndian, []byte{0x01})
+	if err != nil {
+		return err
+	}
+	err = binary.Write(buf, binary.LittleEndian, []byte(key))
+	if err != nil {
+		return err
+	}
+	err = binary.Write(buf, binary.LittleEndian, []byte{0x00})
+	if err != nil {
+		return err
+	}
+	err = binary.Write(buf, binary.LittleEndian, []byte(value))
+	if err != nil {
+		return err
+	}
+	return binary.Write(buf, binary.LittleEndian, []byte{0x00})
+}
+
+func writeVdfInt(buf *bytes.Buffer, key string, value uint32) error {
+	err := binary.Write(buf, binary.LittleEndian, []byte{0x00})
+	if err != nil {
+		return err
+	}
+	err = binary.Write(buf, binary.LittleEndian, []byte(key))
+	if err != nil {
+		return err
+	}
+	err = binary.Write(buf, binary.LittleEndian, []byte{0x00})
+	if err != nil {
+		return err
+	}
+	return binary.Write(buf, binary.LittleEndian, value)
+}
+
+func writeVdfStringSlice(buf *bytes.Buffer, key string, value []string) error {
+	err := binary.Write(buf, binary.LittleEndian, []byte{0x00})
+	if err != nil {
+		return err
+	}
+	err = binary.Write(buf, binary.LittleEndian, []byte(key))
+	if err != nil {
+		return err
+	}
+	err = binary.Write(buf, binary.LittleEndian, []byte{0x00})
+	if err != nil {
+		return err
+	}
+	for c, v := range value {
+		err = binary.Write(buf, binary.LittleEndian, []byte{0x01})
+		if err != nil {
+			return err
+		}
+		err = binary.Write(buf, binary.LittleEndian, []byte(strconv.Itoa(c)))
+		if err != nil {
+			return err
+		}
+		err = binary.Write(buf, binary.LittleEndian, []byte{0x00})
+		if err != nil {
+			return err
+		}
+		err = binary.Write(buf, binary.LittleEndian, []byte(v))
+		if err != nil {
+			return err
+		}
+		err = binary.Write(buf, binary.LittleEndian, []byte{0x00})
+		if err != nil {
+			return err
+		}
+	}
+	return binary.Write(buf, binary.LittleEndian, []byte{0x08})
+}
+
+func (ss Shortcuts) ToVdf() ([]byte, error) {
+	buf := bytes.NewBuffer([]byte{})
+	err := binary.Write(buf, binary.LittleEndian, []byte{0x00})
+	if err != nil {
+		return []byte{}, err
+	}
+	err = binary.Write(buf, binary.LittleEndian, []byte("shortcuts"))
+	if err != nil {
+		return []byte{}, err
+	}
+	err = binary.Write(buf, binary.LittleEndian, []byte{0x00, 0x00, 0x30, 0x00})
+	if err != nil {
+		return []byte{}, err
+	}
+
+	for _, s := range ss {
+		err = writeVdfInt(buf, "appid", s.AppId)
+		if err != nil {
+			return []byte{}, err
+		}
+		err = writeVdfString(buf, "appname", s.Appname)
+		if err != nil {
+			return []byte{}, err
+		}
+		err = writeVdfString(buf, "exe", s.Exe)
+		if err != nil {
+			return []byte{}, err
+		}
+		err = writeVdfString(buf, "StartDir", s.StartDir)
+		if err != nil {
+			return []byte{}, err
+		}
+		err = writeVdfString(buf, "LaunchOptions", s.LaunchOptions)
+		if err != nil {
+			return []byte{}, err
+		}
+		err = writeVdfString(buf, "icon", s.Icon)
+		if err != nil {
+			return []byte{}, err
+		}
+		err = writeVdfStringSlice(buf, "tags", s.Tags)
+		if err != nil {
+			return []byte{}, err
+		}
+		err = binary.Write(buf, binary.LittleEndian, []byte{0x08})
+		if err != nil {
+			return []byte{}, err
+		}
+
+	}
+	return buf.Bytes(), nil
+}
+
+func hash(s string) uint32 {
 	h := fnv.New32()
 	h.Write([]byte(s))
-	return int(h.Sum32())
+	return h.Sum32()
 }
 
 func main() {
@@ -34,7 +185,7 @@ func main() {
 		stream = file
 	}
 
-	var s []shortcuts.Shortcut
+	var s Shortcuts
 	err := json.NewDecoder(stream).Decode(&s)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Couldn't parse json: %s\n", err.Error())
@@ -43,12 +194,18 @@ func main() {
 
 	// generate reproducable id if it's not explicitely set
 	for i, shortcut := range s {
-		if shortcut.Id == 0 {
-			s[i].Id = hash(shortcut.AppName)
+		if shortcut.AppId == 0 {
+			s[i].AppId = hash(shortcut.Appname)
 		}
 	}
 
-	err = shortcuts.WriteVdfV1(s, os.Stdout)
+	b, err := s.ToVdf()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
+
+	_, err = fmt.Print(string(b))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
