@@ -1,15 +1,12 @@
-{
-  buildGoModule,
-  lib,
-  stdenv,
-}:
-buildGoModule rec {
+{buildGoModule, ...}:
+buildGoModule {
   name = "json2steamshortcut";
   src = ./src;
-  vendorSha256 = null;
+  vendorHash = null;
 
   meta = {
     description = "A tool to create a steam shortcut file from a json";
+    mainProgram = "json2steamshortcut";
     maintainers = ["chris@oboe.email"];
   };
 }
