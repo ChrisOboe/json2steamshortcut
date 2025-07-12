@@ -135,7 +135,10 @@ in
             run mkdir -p "${userConfigDir}" ;
           }
           verboseEcho "Writing ${userConfigDir}/shortcuts.vdf"
-          run cat "${vdf}" > "${userConfigDir}/shortcuts.vdf"
+          # FIXME: Not sure about this, but it prevents: `DRY_RUN: unbound variable`
+          set +u
+          [ -z "$DRY_RUN" ] && \
+            cat "${vdf}" > "${userConfigDir}/shortcuts.vdf"
         '';
     };
   }
