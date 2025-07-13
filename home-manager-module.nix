@@ -8,8 +8,8 @@
 
   # TODO: Support: pkgs.stdenv.hostPlatform.isDarwin
   # This hardcoded steam path seems pretty consistent
-  steamConfDir = "${config.xdg.configHome}/../.steam/steam";
-  userConfigDir = "${steamConfDir}/userdata/${cfg.steamUserId}/config";
+  steamConfDir = "${config.home.homeDirectory}/.steam/steam";
+  userConfigDir = "${steamConfDir}/userdata/${builtins.toString cfg.steamUserId}/config";
 in
   with lib; {
     options.services.steam-shortcuts = {
@@ -21,7 +21,7 @@ in
         defaultText = literalExpression "inputs.json2steamshortcut.packages.\${stdenv.hostPlatform.system}.json2steamshortcut";
       };
       steamUserId = mkOption {
-        type = types.str;
+        type = types.int;
         description = ''
           The Steam user ID is the numeric identifier for your Steam account.
           It can be found in the Steam userdata directory, typically located at
@@ -33,7 +33,7 @@ in
           in your browser or in your Steam client.
         '';
 
-        example = "158842264";
+        example = 158842264;
       };
 
       # NOTE: This configuration is formatted for use with json2steamshortcut
@@ -95,13 +95,12 @@ in
     config = mkIf cfg.enable {
       assertions = [
         {
-          # TODO: Use simple type checking if possible /[0-9]+/
-          assertion = cfg.steamUserId != "";
-          message = "services.steam-shortcuts requires steamUserId to be set";
-        }
-        {
           assertion = cfg.shortcuts != [];
           message = "services.steam-shortcuts expects at least one shortcut to be defined";
+        }
+        {
+          assertion = config.home.homeDirectory != "";
+          message = "Home directory could not be determined";
         }
       ];
 
