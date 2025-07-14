@@ -6,9 +6,11 @@
 }: let
   cfg = config.services.steam-shortcuts;
 
-  # TODO: Support: pkgs.stdenv.hostPlatform.isDarwin
-  # This hardcoded steam path seems pretty consistent
-  steamConfDir = "${config.home.homeDirectory}/.steam/steam";
+  # This hardcoded steam path seems pretty consistent, at least for Linux
+  steamConfDir =
+    if pkgs.stdenv.hostPlatform.isDarwin
+    then "${config.home.directory}/Library/Application Support/Steam"
+    else "${config.home.homeDirectory}/.steam/steam";
   userConfigDir = "${steamConfDir}/userdata/${builtins.toString cfg.steamUserId}/config";
 in
   with lib; {
@@ -104,40 +106,16 @@ in
         }
       ];
 
-      # Attempt to let shortcuts.vdf be writable by steam
-      # even if for now, we don't persist the changes.
-
-      # Taken from https://github.com/nix-community/home-manager/blob/ea24675e4f4f4c494ccb04f6645db2a394d348ee/modules/programs/vscode/default.nix#L354C5-L386C7
-      # Description: https://github.com/nix-community/home-manager/blob/ea24675e4f4f4c494ccb04f6645db2a394d348ee/modules/home-environment.nix#L429
-      # Not sure if this is the recommended approach for a relatively easy file modification,
-      # worth to mention as well, this is destructive as it overwrites any existing shortcuts.vdf
-
+      # NOTE: This is destructive as it overwrites any existing shortcuts.vdf
       # Create or overwrite the shortcuts.vdf file
-      home.activation.steam-shortcuts = let
+      home.file."${userConfigDir}/shortcuts.vdf" = let
         json = builtins.toJSON cfg.shortcuts;
         vdf = pkgs.runCommandLocal "shortcuts.vdf" {
           nativeBuildInputs = [cfg.package];
         } "echo '${json}' | json2steamshortcut > $out";
-      in
-        lib.hm.dag.entryAfter ["writeBoundary"] ''
-          # TODO: Is it a good practice to create folder if it doesn't exist?
-          #       Should only be applicable for systems that haven't yet started
-          #       Steam for the first time as the user designated by `cfg.steamUserId`.
-          #
-          # - Skips creating shortcuts if '.steam/steam/userdata' doesn't exist
-          [ -d "${userConfigDir}" ] || {
-            [ -d "${steamConfDir}/userdata" ] || {
-              verboseEcho "${steamConfDir}/userdata doesn't exist, skipped creating ${userConfigDir}/shortcuts.vdf" ;
-              exit 0 ;
-            }
-            verboseEcho "Creating ${userConfigDir}" ;
-            run mkdir -p "${userConfigDir}" ;
-          }
-          verboseEcho "Writing ${userConfigDir}/shortcuts.vdf"
-          # FIXME: Not sure about this, but it prevents: `DRY_RUN: unbound variable`
-          set +u
-          [ -z "$DRY_RUN" ] && \
-            cat "${vdf}" > "${userConfigDir}/shortcuts.vdf"
-        '';
+      in {
+        source = vdf;
+        force = true;
+      };
     };
   }
