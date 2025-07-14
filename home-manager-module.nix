@@ -106,8 +106,7 @@ in
         }
       ];
 
-      # NOTE: This is destructive as it overwrites any existing shortcuts.vdf
-      # Create or overwrite the shortcuts.vdf file
+      # Create shortcuts.vdf file
       home.file."${userConfigDir}/shortcuts.vdf" = let
         json = builtins.toJSON cfg.shortcuts;
         vdf = pkgs.runCommandLocal "shortcuts.vdf" {
