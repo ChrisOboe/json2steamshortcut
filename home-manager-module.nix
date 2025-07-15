@@ -126,9 +126,37 @@ in
         }
       ];
 
+      # Check for shortcuts with duplicate AppNames
+      # Since AppName + Exe is used by Steam to generate
+      # non-steam AppId for: `steam steam://rungameid/<hash>`
+      # NOTE: We are intentionally not including 'Exe' in search key
+      # since we are prohibited from using store paths as strings
+      warnings = let
+        firstDuplicate =
+          (builtins.foldl'
+            (acc: value:
+              if acc.found != null
+              then acc
+              else if acc.seen ? ${value}
+              then {
+                inherit (acc) seen;
+                found = value;
+              }
+              else {
+                seen = acc.seen // {${value} = true;};
+                found = null;
+              })
+            {
+              seen = {};
+              found = null;
+            }
+            (builtins.map (attr: attr.AppName) cfg.shortcuts)).found;
+      in
+        lib.optional (firstDuplicate != null) "services.steam-shortcuts: Found duplicate AppName: ${firstDuplicate} - this may cause issues when creating shortcuts from Steam to launch non-steam applications";
+
       # Create shortcuts.vdf file
       home.file."${cfg.userConfigDir}/shortcuts.vdf" = let
-        # Utility to filter out shortcut values with null values
+        # Utility to filter out shortcut fields with null values
         cleanAttrs = attrs:
           lib.attrsets.filterAttrs (_key: value: value != null) attrs;
 
