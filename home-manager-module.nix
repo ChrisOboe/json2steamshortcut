@@ -54,24 +54,30 @@ in
               type = types.str;
               description = "Path to the executable";
             };
+            AppId = mkOption {
+              type = with types; nullOr str;
+              default = null;
+              internal = true; # Disabled for now
+              description = "Steam AppID";
+            };
             StartDir = mkOption {
-              type = types.str;
-              default = "";
+              type = with types; nullOr str;
+              default = null;
               description = "Starting directory for the application";
             };
             LaunchOptions = mkOption {
-              type = types.str;
-              default = "";
+              type = with types; nullOr str;
+              default = null;
               description = "Launch options for the application";
             };
             Icon = mkOption {
-              type = types.str;
-              default = "";
+              type = with types; nullOr str;
+              default = null;
               description = "Path to icon file";
             };
             Tags = mkOption {
-              type = types.listOf types.str;
-              default = [];
+              type = with types; nullOr (listOf str);
+              default = null;
               description = "Tags for the shortcut";
             };
           };
@@ -108,7 +114,20 @@ in
 
       # Create shortcuts.vdf file
       home.file."${userConfigDir}/shortcuts.vdf" = let
-        json = builtins.toJSON cfg.shortcuts;
+        # Utility to filter out shortcut values with null values
+        # FIXME: Replace with standardized version, or use flake-utils equivalent
+        cleanAttrs = attrs: let
+          keys = builtins.filter (k: attrs.${k} != null) (builtins.attrNames attrs);
+        in
+          builtins.listToAttrs (lib.map (k: {
+              name = k;
+              value = attrs.${k};
+            })
+            keys);
+
+        shortcuts = lib.map cleanAttrs cfg.shortcuts;
+
+        json = builtins.toJSON shortcuts;
         vdf = pkgs.runCommandLocal "shortcuts.vdf" {
           nativeBuildInputs = [cfg.package];
         } "echo '${json}' | json2steamshortcut > $out";
