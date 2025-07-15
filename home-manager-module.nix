@@ -7,11 +7,10 @@
   cfg = config.services.steam-shortcuts;
 
   # This hardcoded steam path seems pretty consistent, at least for Linux
-  steamConfDir =
+  steamConfDirRelative =
     if pkgs.stdenv.hostPlatform.isDarwin
-    then "${config.home.homeDirectory}/Library/Application Support/Steam"
-    else "${config.home.homeDirectory}/.steam/steam";
-  userConfigDir = "${steamConfDir}/userdata/${builtins.toString cfg.steamUserId}/config";
+    then "Library/Application Support/Steam"
+    else ".steam/steam";
 in
   with lib; {
     options.services.steam-shortcuts = {
@@ -36,6 +35,21 @@ in
         '';
 
         example = 158842264;
+      };
+
+      # If provided, this will assume that steam is run with $HOME set to this directory
+      # Only useful in very particular cases where one has already configured to run Steam
+      # with $HOME set to to a non-standard location, e.g. /mnt/Steam
+      steamHomeDir = mkOption {
+        type = types.str;
+        default = config.home.homeDirectory;
+        description = "Steam home directory, only change if you know what you are doing";
+      };
+
+      userConfigDir = mkOption {
+        type = types.str;
+        internal = true;
+        default = "${cfg.steamHomeDir}/${steamConfDirRelative}/userdata/${builtins.toString cfg.steamUserId}/config";
       };
 
       # NOTE: This configuration is formatted for use with json2steamshortcut
@@ -95,7 +109,7 @@ in
               Exe = "''${pkgs.firefox}/bin/firefox";
               LaunchOptions = "--new-window";
             }
-          ]
+          ];
         '';
       };
     };
@@ -107,23 +121,16 @@ in
           message = "services.steam-shortcuts expects at least one shortcut to be defined";
         }
         {
-          assertion = config.home.homeDirectory != "";
-          message = "Home directory could not be determined";
+          assertion = cfg.steamHomeDir != "";
+          message = "Steam Home directory could not be determined";
         }
       ];
 
       # Create shortcuts.vdf file
-      home.file."${userConfigDir}/shortcuts.vdf" = let
+      home.file."${cfg.userConfigDir}/shortcuts.vdf" = let
         # Utility to filter out shortcut values with null values
-        # FIXME: Replace with standardized version, or use flake-utils equivalent
-        cleanAttrs = attrs: let
-          keys = builtins.filter (k: attrs.${k} != null) (builtins.attrNames attrs);
-        in
-          builtins.listToAttrs (lib.map (k: {
-              name = k;
-              value = attrs.${k};
-            })
-            keys);
+        cleanAttrs = attrs:
+          lib.attrsets.filterAttrs (_key: value: value != null) attrs;
 
         shortcuts = lib.map cleanAttrs cfg.shortcuts;
 
