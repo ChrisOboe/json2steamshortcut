@@ -9,7 +9,7 @@
   # This hardcoded steam path seems pretty consistent, at least for Linux
   steamConfDir =
     if pkgs.stdenv.hostPlatform.isDarwin
-    then "${config.home.directory}/Library/Application Support/Steam"
+    then "${config.home.homeDirectory}/Library/Application Support/Steam"
     else "${config.home.homeDirectory}/.steam/steam";
   userConfigDir = "${steamConfDir}/userdata/${builtins.toString cfg.steamUserId}/config";
 in
