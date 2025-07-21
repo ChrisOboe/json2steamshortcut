@@ -1,15 +1,21 @@
-# Description
+# json2steamshortcut
+
+## Description
+
 json2steamshortcut is used to generate a shortcut.vdf (the file that contains all the "non-steam-games") from a json.
 
 This tool is using the [steamutil](https://github.com/stephen-fox/steamutil) library for vdf generation.
 
-# Intention
-json2steamshortcut is intended to be used with Nix/NixOS to enable declaratively definining the links in steam. 
+This repository also provides a NixOS Home-manager module `steam-shortcuts` which provides `services.steam-shortcuts` for creating declarative Steam Shortcuts from your Home-manager configuration.
+
+## Intention
+
+json2steamshortcut is intended to be used with Nix/NixOS to enable declaratively defining the links in steam.
 I personally use it in combination with [Jovian-NixOS](https://github.com/Jovian-Experiments/Jovian-NixOS) to get declaratively a gameconsole like system without needing to fall back to a WM/DE just for setting up shortcuts in steam.
 
-# Usage
+## Usage
 
-## CLI
+### CLI
 
 ```bash
 # Read from stdin
@@ -26,7 +32,8 @@ cat shortcuts.json | json2steamshortcut > shortcuts.vdf
 
 The tool expects valid JSON that contains an array of Shortcut Objects
 <details>
-<summary>Valid JSON input:</summary>
+
+<summary>Valid JSON input</summary>
 
 ```json
 [
@@ -40,7 +47,12 @@ The tool expects valid JSON that contains an array of Shortcut Objects
   }
 ]
 ```
-#### Shortcut JSON fields:
+
+</details>
+
+<details>
+
+<summary>Shortcut JSON fields</summary>
 
 - AppName (required): Display name in Steam
 - Exe (required): Path to the executable
@@ -51,16 +63,13 @@ The tool expects valid JSON that contains an array of Shortcut Objects
 
 </details>
 
-
 ## Home Manager Module
+
 This project provides a home-manager module that makes it easy to declaratively manage Steam shortcuts.
 
 <details>
 
-<summary>Flake usage</summary>
-
-
-### Flake inputs
+<summary>Flake inputs</summary>
 
 Add json2steamshortcut to your flake inputs:
 
@@ -79,7 +88,11 @@ Add json2steamshortcut to your flake inputs:
 }
 ```
 
-### Configuration Example
+</details>
+
+<details>
+
+<summary>Home Configuration</summary>
 
 ```nix
 {
@@ -101,6 +114,7 @@ Add json2steamshortcut to your flake inputs:
   home-manager.users."user" = {
     services.steam-shortcuts = {
       enable = true;
+      overwriteExisting = true; # Recommended for true declarative steam shortcuts - will overwrite any existing shortcuts.vdf
       steamUserId = 158842264; # Replace with your Steam user ID
       shortcuts = [
         {
@@ -127,7 +141,9 @@ Add json2steamshortcut to your flake inputs:
 }
 ```
 
-### Finding Your Steam User ID
+</details>
+
+## Finding Your Steam User ID
 
 Your Steam user ID can be found in several ways:
 
@@ -137,7 +153,9 @@ Your Steam user ID can be found in several ways:
 
 ## Manual Usage Example
 
-If you prefer to manually manage the VDF file generation:
+<details>
+
+<summary>If you prefer to manually manage the VDF file generation</summary>
 
 ```nix
 {
@@ -182,6 +200,8 @@ in {
 }
 ```
 
+</details>
+
 ## Home Manager Shortcut Fields
 
 The home-manager module supports the following fields for each shortcut:
@@ -193,25 +213,23 @@ The home-manager module supports the following fields for each shortcut:
 - `Icon` (optional): Path to icon file
 - `Tags` (optional): List of tags for the shortcut
 
-
-</details>
-
-# Flake Outputs
+## Flake Outputs
 
 This flake provides:
 
-- `packages.default`: The json2steamshortcut package
-- `overlays.default`: Overlay to add json2steamshortcut to nixpkgs
+- `packages.default`: The json2steamshortcut CLI as a package
+- `overlays.default`: Overlay to add json2steamshortcut CLI to nixpkgs
 - `homeManagerModules.default`: Home Manager module for declarative Steam shortcuts management
 
-# Known Limitations
+## Known Limitations
 
-- **Steam overwrites files**: Steam will overwrite the shortcuts.vdf file when you add software through the Steam interface. Software added through Steam will be lost with the next home-manager update.
+- **Steam overwrites files**: Steam will overwrite the shortcuts.vdf file when you add software through the Steam interface.
 
-
-- **Home Manager backup conflicts**: ~~Home Manager will complain after the second usage, since it will backup the original file and when already a backup exists refuse to work.~~ 
+  Software added through Steam will be lost with the next home-manager update.
   
- > Should be solved now? The home-manager module uses `force = true` to work around this. 
+  Use `services.steam-shortcuts.overwriteExisting = true` to implicitly overwrite any existing `shortcuts.vdf` (recommended.)
+
+  This will only affect manually added non-steam games, and not your existing Steam game configurations such as launch options or compatibility tools.
 
 ## Potential Additions
 
@@ -220,23 +238,21 @@ These features might be out of the scope of this project, but PRs are welcome if
 - **Update shortcuts.vdf at runtime** Add merging support during runtime when shortcuts.vdf gets updated by Steam.
   Apply our declarative JSON to any existing shortcuts.vdf
 
-- **Launch Steam Shortcuts from CLI** In theory we could start our shortcuts using `steam steam://rungameid/<hash>`.
-  Where we use Steams own hashing algorithm to generate a valid rungameid to start our non-steam games. 
+- **Launch Steam Shortcuts from CLI** In theory, we could start our shortcuts using `steam steam://rungameid/<hash>`.
+  Where we use Steams own hashing algorithm to generate a valid rungameid to start our non-steam games.
   [My](https://github.com/Joaqim) attempts to start these shortcuts have failed, here's a simple [typescript sandbox](https://kempo.io/projects/cmd3go6dx0008sea4v9v1lfvr) that _should_ be able to create valid shortcut hashes.
-
 
 - **AppId**: For now we don't set AppId at all, but should be easy to implement if there was a need for it.
   As I haven't done any research on Steams TOS with using Steams own AppIds for non-steam game from a different store, I've left this untouched.
-
 
 - **Icon**: Maybe dynamically find icon by executable name, or if icon is provide by icon identifier such as in a .desktop file:
 
   > `Icon = "net.lutris.Lutris.png"` -> "/usr/share/icons/hicolor/128x128/apps/net.lutris.Lutris.png"
 
-
 - **Make Shortcut from package**
 
   Naive implementation:
+
   ```nix
   mkSteamShortcut = (myPkg: {
     Exe = lib.getExe myPkg;
@@ -246,7 +262,9 @@ These features might be out of the scope of this project, but PRs are welcome if
     AppName = myPkg.name; 
   })
   ```
+
   Usage:
+
   ```nix
     json = builtins.toJSON [
       (mkSteamShortcut pkgs.prismlauncher)
@@ -256,6 +274,7 @@ These features might be out of the scope of this project, but PRs are welcome if
   ```
 
   Alternatively create steam shortcut directly by parsing manually given desktop file:
+
   ```nix
   DesktopFile = "${pkgs.lutris}/share/applications/net.lutris.Lutris.desktop"
   ```
