@@ -21,6 +21,7 @@ in
         default = pkgs.callPackage ./default.nix {};
         defaultText = literalExpression "inputs.json2steamshortcut.packages.\${stdenv.hostPlatform.system}.json2steamshortcut";
       };
+
       steamUserId = mkOption {
         type = types.int;
         description = ''
@@ -37,6 +38,18 @@ in
         example = 158842264;
       };
 
+      # Equivalent to home.file."${cfg.shortcutsPath}".force = true;
+      overwriteExisting = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Whether Steam's shortcuts.vdf should be unconditionally replaced
+          by this service. Warning, this will silently
+          delete the target regardless of whether it is a file or
+          link.
+        '';
+      };
+
       # If provided, this will assume that steam is run with $HOME set to this directory
       # Only useful in very particular cases where one has already configured to run Steam
       # with $HOME set to to a non-standard location, e.g. /mnt/Steam
@@ -50,6 +63,12 @@ in
         type = types.str;
         internal = true;
         default = "${cfg.steamHomeDir}/${steamConfDirRelative}/userdata/${builtins.toString cfg.steamUserId}/config";
+      };
+
+      shortcutsPath = mkOption {
+        type = types.str;
+        internal = true;
+        default = "${cfg.steamHomeDir}/${cfg.userConfigDir}/shortcuts.vdf";
       };
 
       # NOTE: This configuration is formatted for use with json2steamshortcut
@@ -124,6 +143,10 @@ in
           assertion = cfg.steamHomeDir != "";
           message = "Steam Home directory could not be determined";
         }
+        {
+          assertion = cfg.overwriteExisting != true -> !(lib.filesystem.pathIsRegularFile cfg.shortcutsPath);
+          message = "Steam's shortcuts file already exists at ${cfg.shortcutsPath}, use `services.steam-shortcuts.overwriteExisting = true` to overwrite existing file";
+        }
       ];
 
       # Check for shortcuts with duplicate AppNames
@@ -131,6 +154,7 @@ in
       # non-steam AppId for: `steam steam://rungameid/<hash>`
       # NOTE: We are intentionally not including 'Exe' in search key
       # since we are prohibited from using store paths as strings
+      # TODO: Display errors with context: https://github.com/hsjobeki/nixpkgs/blob/f0efec9cacfa9aef98a3c70fda2753b9825e262f/lib/fileset/default.nix#L625
       warnings = let
         firstDuplicate =
           (builtins.foldl'
@@ -152,10 +176,13 @@ in
             }
             (builtins.map (attr: attr.AppName) cfg.shortcuts)).found;
       in
-        lib.optional (firstDuplicate != null) "services.steam-shortcuts: Found duplicate AppName: ${firstDuplicate} - this may cause issues when creating shortcuts from Steam to launch non-steam applications";
+        lib.optional (cfg.overwriteExisting != true)
+        "For proper declarative Steam shortcut management, use `services.steam-shortcuts.overwriteExisting = true` to explicitly overwrite any existing `shortcuts.vdf`."
+        ++ lib.optional (firstDuplicate != null)
+        "services.steam-shortcuts: Found duplicate AppName: ${firstDuplicate} - this may cause conflict when creating shortcuts from inside Steam to launch non-steam applications";
 
       # Create shortcuts.vdf file
-      home.file."${cfg.userConfigDir}/shortcuts.vdf" = let
+      home.file."${cfg.shortcutsPath}" = let
         # Utility to filter out shortcut fields with null values
         cleanAttrs = attrs:
           lib.attrsets.filterAttrs (_key: value: value != null) attrs;
@@ -168,7 +195,7 @@ in
         } "echo '${json}' | json2steamshortcut > $out";
       in {
         source = vdf;
-        force = true;
+        force = cfg.overwriteExisting;
       };
     };
   }
