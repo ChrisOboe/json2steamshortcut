@@ -69,7 +69,7 @@
       overlays.default = final: _: {
         json2steamshortcut = final.callPackage ./default.nix {};
       };
-      homeManagerModules = rec {
+      homeModules = rec {
         steam-shortcuts = import ./home-manager-module.nix;
         default = steam-shortcuts;
       };

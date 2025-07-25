@@ -104,7 +104,7 @@ Add json2steamshortcut to your flake inputs:
 }: {
   # Import the home-manager module
   imports = [
-    inputs.json2steamshortcut.homeManagerModules.default
+    inputs.json2steamshortcut.homeModules.default
   ];
 
   # Enable Steam
@@ -219,7 +219,7 @@ This flake provides:
 
 - `packages.default`: The json2steamshortcut CLI as a package
 - `overlays.default`: Overlay to add json2steamshortcut CLI to nixpkgs
-- `homeManagerModules.default`: Home Manager module for declarative Steam shortcuts management
+- `homeModules.default`: Home Manager module for declarative Steam shortcuts management
 
 ## Known Limitations
 
