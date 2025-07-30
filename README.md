@@ -4,8 +4,6 @@
 
 json2steamshortcut is used to generate a shortcut.vdf (the file that contains all the "non-steam-games") from a json.
 
-This tool is using the [steamutil](https://github.com/stephen-fox/steamutil) library for vdf generation.
-
 This repository also provides a NixOS Home-manager module `steam-shortcuts` which provides `services.steam-shortcuts` for creating declarative Steam Shortcuts from your Home-manager configuration.
 
 ## Intention
